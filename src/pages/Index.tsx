@@ -1,12 +1,34 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Header from "@/components/layout/Header";
+import Dashboard from "@/components/dashboard/Dashboard";
+import ChatInterface from "@/components/chat/ChatInterface";
+import HealthProfile from "@/components/profile/HealthProfile";
+import DietPlans from "@/components/plans/DietPlans";
 
 const Index = () => {
+  const [currentSection, setCurrentSection] = useState('dashboard');
+
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'dashboard':
+        return <Dashboard onNavigate={setCurrentSection} />;
+      case 'chat':
+        return <ChatInterface />;
+      case 'profile':
+        return <HealthProfile />;
+      case 'plans':
+        return <DietPlans />;
+      default:
+        return <Dashboard onNavigate={setCurrentSection} />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header onNavigate={setCurrentSection} currentSection={currentSection} />
+      <main className="container mx-auto px-4 py-8">
+        {renderSection()}
+      </main>
     </div>
   );
 };
