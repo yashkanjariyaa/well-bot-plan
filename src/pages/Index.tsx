@@ -4,6 +4,7 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import ChatInterface from "@/components/chat/ChatInterface";
 import HealthProfile from "@/components/profile/HealthProfile";
 import DietPlans from "@/components/plans/DietPlans";
+import WellnessReminders from "@/components/plans/WellnessReminders";
 
 const Index = () => {
   const [currentSection, setCurrentSection] = useState('dashboard');
@@ -18,6 +19,8 @@ const Index = () => {
         return <HealthProfile />;
       case 'plans':
         return <DietPlans />;
+      case 'reminders':
+        return <WellnessReminders />;
       default:
         return <Dashboard onNavigate={setCurrentSection} />;
     }

@@ -16,6 +16,7 @@ const ChatInterface = () => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on component mount
   useEffect(() => {
@@ -25,10 +26,10 @@ const ChatInterface = () => {
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   // AI response generator using Gemini API
   const generateAIResponse = async (userMessage: string): Promise<ChatbotResponse> => {
@@ -113,8 +114,10 @@ const ChatInterface = () => {
     }
   };
 
-  const handleQuickReply = (action: string, data: any) => {
+  const handleQuickReply = async (action: string, data: any) => {
     console.log("Quick reply action:", action, data);
+    
+    let messageToSend = "";
     
     // Handle different actions
     switch (action) {
@@ -129,31 +132,164 @@ const ChatInterface = () => {
           });
         }
         return;
-        
-      case 'customize_plan':
-        setInputValue("I'd like to customize this plan");
-        break;
-        
+      
+      // Meal plan related actions
       case 'create_meal_plan':
-        setInputValue("Create a personalized meal plan for me");
+        messageToSend = "Create a personalized meal plan for me";
         break;
-        
+      case 'customize_plan':
+        messageToSend = "I'd like to customize this plan";
+        break;
+      case 'adjust_calories':
+        messageToSend = "Can you adjust the calorie count in this plan?";
+        break;
+      case 'make_vegetarian':
+        messageToSend = "Make this plan vegetarian";
+        break;
+      case 'show_shopping_list':
+        messageToSend = "Show me a shopping list for this plan";
+        break;
+      
+      // Nutrition tracking
       case 'track_nutrition':
-        setInputValue("Help me track my nutrition");
+        messageToSend = "Help me track my nutrition";
         break;
-        
+      case 'calculate_needs':
+        messageToSend = "Calculate my daily nutritional needs";
+        break;
+      case 'show_macros':
+        messageToSend = "Show me how to balance my macros";
+        break;
+      
+      // Protein related
+      case 'increase_protein':
+        messageToSend = "How can I increase my protein intake?";
+        break;
+      case 'protein_sources':
+        messageToSend = "What are good sources of protein?";
+        break;
+      
+      // Recipe and ingredient related
+      case 'recipes_with_ingredient':
+        messageToSend = "Show me recipes with this ingredient";
+        break;
+      case 'show_examples':
+        messageToSend = "Show me some meal examples";
+        break;
+      case 'find_alternatives':
+        messageToSend = "What are some alternatives for this ingredient?";
+        break;
+      case 'compare_nutrition':
+        messageToSend = "Compare the nutrition of similar ingredients";
+        break;
+      
+      // Macro adjustments
+      case 'reduce_carbs':
+        messageToSend = "How can I reduce my carb intake?";
+        break;
+      case 'add_fiber':
+        messageToSend = "How can I add more fiber to my diet?";
+        break;
+      case 'healthy_fats':
+        messageToSend = "What are healthy sources of fats?";
+        break;
+      
+      // Exercise and fitness
+      case 'exercise_tips':
+        messageToSend = "Give me exercise tips";
+        break;
+      case 'workout_plan':
+        messageToSend = "Create a workout plan for me";
+        break;
+      case 'cardio_tips':
+        messageToSend = "What cardio exercises do you recommend?";
+        break;
+      
+      // Weight management
+      case 'weight_loss_tips':
+        messageToSend = "Give me weight loss tips";
+        break;
+      case 'muscle_gain_tips':
+        messageToSend = "How can I gain muscle mass?";
+        break;
+      case 'maintenance_tips':
+        messageToSend = "How do I maintain my current weight?";
+        break;
+      
+      // General diet
+      case 'diet_tips':
+        messageToSend = "Give me general diet tips";
+        break;
+      case 'meal_timing':
+        messageToSend = "What's the best meal timing for my goals?";
+        break;
+      case 'supplement_advice':
+        messageToSend = "What supplements should I consider?";
+        break;
+      
+      // More information
+      case 'tell_more':
+      case 'learn_more':
+      case 'detailed_info':
+        messageToSend = "Tell me more about this";
+        break;
+      case 'ask_more':
+        messageToSend = "I have another question";
+        break;
+      
       default:
-        setInputValue(`Tell me more about ${action}`);
+        messageToSend = `Tell me more about ${action.replace(/_/g, ' ')}`;
     }
     
-    // Auto-send the message
-    setTimeout(() => handleSendMessage(), 100);
+    // Send the message directly without putting it in the input box
+    if (messageToSend && !isLoading) {
+      const userMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: messageToSend,
+        timestamp: new Date().toISOString()
+      };
+
+      // Add user message
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
+      chatStorage.add(userMessage);
+      setIsLoading(true);
+
+      try {
+        // Generate AI response
+        const aiResponseData = await generateAIResponse(messageToSend);
+        
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: aiResponseData.content.text || 'I\'ve prepared a response for you.',
+          timestamp: new Date().toISOString(),
+          data: aiResponseData
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+        chatStorage.add(aiMessage);
+      } catch (error) {
+        console.error('Error generating AI response:', error);
+        const errorMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'I apologize, but I\'m having trouble processing your request right now. Please try again.',
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+        chatStorage.add(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] max-w-4xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-180px)] max-w-4xl mx-auto">
       {/* Medical Disclaimer */}
-      <Alert className="mb-4 bg-warning/10 border-warning/20">
+      <Alert className="mb-4 bg-warning/10 border-warning/20 flex-shrink-0">
         <AlertTriangle className="h-4 w-4 text-warning-foreground" />
         <AlertDescription className="text-warning-foreground">
           This AI assistant provides general health information only. Always consult healthcare professionals for medical advice.
@@ -161,10 +297,10 @@ const ChatInterface = () => {
       </Alert>
 
       {/* Chat Messages */}
-      <Card className="flex-1 mb-4">
-        <CardContent className="p-0">
-          <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
-            <div className="space-y-4">
+      <Card className="flex-1 mb-4 overflow-hidden flex flex-col">
+        <CardContent className="p-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full" ref={scrollAreaRef}>
+            <div className="space-y-4 p-4">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="h-12 w-12 mx-auto mb-4 text-primary" />
@@ -217,13 +353,16 @@ const ChatInterface = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Invisible element to scroll to */}
+              <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
 
-      {/* Input Area */}
-      <div className="flex gap-2">
+      {/* Input Area - Fixed at bottom */}
+      <div className="flex gap-2 flex-shrink-0">
         <Input
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}

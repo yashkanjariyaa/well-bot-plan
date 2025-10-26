@@ -1,4 +1,4 @@
-import { Activity, Heart, Target, TrendingUp } from "lucide-react";
+import { Activity, Heart, Target, TrendingUp, Bell } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-wellness.jpg";
@@ -99,7 +99,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="shadow-card hover:shadow-wellness transition-smooth cursor-pointer"
               onClick={() => onNavigate('chat')}>
           <CardHeader>
@@ -150,6 +150,24 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             </p>
             <Button variant="outline" className="w-full">
               View Plans
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card hover:shadow-wellness transition-smooth cursor-pointer"
+              onClick={() => onNavigate('reminders')}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              Wellness Reminders
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Set up reminders for water intake, walks, and healthy habits.
+            </p>
+            <Button variant="outline" className="w-full">
+              Manage Reminders
             </Button>
           </CardContent>
         </Card>

@@ -18,6 +18,7 @@ const Header = ({ onNavigate, currentSection }: HeaderProps) => {
     { id: 'chat', label: 'Health Assistant' },
     { id: 'profile', label: 'Health Profile' },
     { id: 'plans', label: 'Diet Plans' },
+    { id: 'reminders', label: 'Wellness Reminders' },
   ];
 
   return (

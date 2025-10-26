@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { dietPlansStorage } from "@/utils/storage";
-import { DietPlan } from "@/types/health";
+import { DietPlan, Meal } from "@/types/health";
 import { useNotifications } from "@/hooks/useNotifications";
 import PlanFormDialog from "./PlanFormDialog";
 import ReminderDialog from "./ReminderDialog";
@@ -175,17 +175,15 @@ const DietPlans = () => {
     setReminderDialogOpen(true);
   };
 
-  const handleReminderSet = (plan: DietPlan, customTimes: any) => {
-    // Update meals with custom times
-    const updatedMeals = plan.meals.map(meal => {
-      const mealType = meal.type.toLowerCase();
-      if (customTimes[mealType]) {
-        return { ...meal, time: customTimes[mealType] };
-      }
-      return meal;
-    });
-
+  const handleReminderSet = (plan: DietPlan, updatedMeals: Meal[]) => {
+    // Update the plan with new meals
     const updatedPlan = { ...plan, meals: updatedMeals };
+    
+    // Save the updated plan
+    dietPlansStorage.update(plan.id, updatedPlan);
+    setPlans(plans.map(p => p.id === plan.id ? updatedPlan : p));
+    
+    // Schedule reminders
     scheduleMealReminders(updatedPlan);
   };
 
