@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Clock, Target, Users } from "lucide-react";
+import { Plus, Search, Filter, Clock, Target, Users, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { dietPlansStorage } from "@/utils/storage";
 import { DietPlan } from "@/types/health";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const DietPlans = () => {
   const [plans, setPlans] = useState<DietPlan[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const { scheduleMealReminders, requestPermission, permission } = useNotifications();
 
   useEffect(() => {
     const savedPlans = dietPlansStorage.getAll();
@@ -229,8 +231,20 @@ const DietPlans = () => {
                   <Button className="w-full" size="sm">
                     View Plan Details
                   </Button>
-                  <Button variant="outline" className="w-full" size="sm">
-                    Customize Plan
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm"
+                    onClick={() => {
+                      if (permission === "granted") {
+                        scheduleMealReminders(plan);
+                      } else {
+                        requestPermission();
+                      }
+                    }}
+                  >
+                    <Bell className="h-3 w-3 mr-2" />
+                    Set Meal Reminders
                   </Button>
                 </div>
               </div>

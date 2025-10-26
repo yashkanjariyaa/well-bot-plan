@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { chatStorage } from "@/utils/storage";
 import { ChatMessage, ChatbotResponse } from "@/types/health";
 import ChatMessageRenderer from "./ChatMessageRenderer";
+import { chatWithGemini } from "@/services/geminiService";
+import { toast } from "sonner";
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -28,134 +30,34 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
-  // Mock AI response generator (replace with actual AI integration)
+  // AI response generator using Gemini API
   const generateAIResponse = async (userMessage: string): Promise<ChatbotResponse> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    try {
+      // Build conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
 
-    // Emergency detection
-    const emergencyKeywords = ['chest pain', 'heart attack', 'can\'t breathe', 'emergency', 'severe pain'];
-    const isEmergency = emergencyKeywords.some(keyword => 
-      userMessage.toLowerCase().includes(keyword)
-    );
-
-    if (isEmergency) {
+      const response = await chatWithGemini(userMessage, conversationHistory);
+      return response;
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      toast.error("Failed to get AI response", {
+        description: "Please check your internet connection and try again"
+      });
+      
+      // Return fallback response
       return {
-        type: 'emergency',
+        type: 'quick_replies',
         content: {
-          emergency: {
-            severity: 'high',
-            message: 'I notice you may be experiencing a medical emergency. Please seek immediate medical attention.',
-            recommendations: [
-              'Call emergency services (911) immediately',
-              'Do not drive yourself to the hospital',
-              'Stay calm and follow emergency operator instructions'
-            ],
-            emergencyContacts: [
-              { name: 'Emergency Services', number: '911', type: 'emergency' },
-              { name: 'Poison Control', number: '1-800-222-1222', type: 'poison_control' }
-            ]
-          }
+          text: 'I\'m having trouble connecting right now. Please try again in a moment.',
+          quickReplies: [
+            { id: '1', text: 'Retry', action: 'retry', data: {} }
+          ]
         }
       };
     }
-
-    // Diet/nutrition related responses
-    if (userMessage.toLowerCase().includes('diet') || userMessage.toLowerCase().includes('meal')) {
-      return {
-        type: 'plan',
-        content: {
-          plan: {
-            id: 'sample-plan-' + Date.now(),
-            name: 'Mediterranean Diet Plan',
-            description: 'A heart-healthy diet rich in vegetables, fruits, whole grains, and healthy fats.',
-            duration: 7,
-            totalCalories: 2000,
-            macros: {
-              protein: 150,
-              carbs: 250,
-              fat: 67,
-              fiber: 35
-            },
-            meals: [
-              {
-                id: 'breakfast-1',
-                name: 'Greek Yogurt with Berries',
-                type: 'breakfast',
-                calories: 300,
-                macros: { protein: 20, carbs: 35, fat: 8, fiber: 5 },
-                ingredients: [
-                  {
-                    id: 'greek-yogurt',
-                    name: 'Greek Yogurt',
-                    amount: 200,
-                    unit: 'g',
-                    calories: 150,
-                    macros: { protein: 15, carbs: 6, fat: 5, fiber: 0 },
-                    healthBenefits: ['High in protein', 'Probiotics for gut health'],
-                    alternatives: ['Regular yogurt', 'Plant-based yogurt'],
-                    allergens: ['dairy']
-                  }
-                ],
-                instructions: [
-                  'Add yogurt to a bowl',
-                  'Top with fresh berries',
-                  'Sprinkle with granola if desired'
-                ],
-                prepTime: 5,
-                difficulty: 'easy',
-                tags: ['quick', 'healthy', 'breakfast']
-              }
-            ],
-            preferences: {
-              vegetarian: false,
-              vegan: false,
-              halal: true,
-              calorieLimit: 2200,
-              excludeAllergies: []
-            }
-          }
-        }
-      };
-    }
-
-    // Nutrition info responses
-    if (userMessage.toLowerCase().includes('calories') || userMessage.toLowerCase().includes('nutrition')) {
-      return {
-        type: 'card',
-        content: {
-          card: {
-            title: 'Daily Nutrition Overview',
-            description: 'Based on your current intake and goals',
-            category: 'nutrition',
-            metrics: [
-              { label: 'Calories', value: '1,850', unit: 'kcal' },
-              { label: 'Protein', value: '125', unit: 'g' },
-              { label: 'Carbs', value: '200', unit: 'g' },
-              { label: 'Fat', value: '65', unit: 'g' }
-            ],
-            actions: [
-              { label: 'View Detailed Breakdown', action: 'view_nutrition', data: {} },
-              { label: 'Log Food', action: 'log_food', data: {} }
-            ]
-          }
-        }
-      };
-    }
-
-    // Default text response with quick replies
-    return {
-      type: 'quick_replies',
-      content: {
-        text: 'I\'m here to help you with your health and nutrition questions! I can provide personalized diet plans, nutrition information, and wellness advice.',
-        quickReplies: [
-          { id: '1', text: 'Create a meal plan', action: 'create_meal_plan', data: {} },
-          { id: '2', text: 'Track my nutrition', action: 'track_nutrition', data: {} },
-          { id: '3', text: 'Exercise recommendations', action: 'exercise_tips', data: {} },
-          { id: '4', text: 'Healthy recipes', action: 'healthy_recipes', data: {} }
-        ]
-      }
-    };
   };
 
   const handleSendMessage = async () => {

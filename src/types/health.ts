@@ -93,6 +93,7 @@ export interface Meal {
   id: string;
   name: string;
   type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  time?: string; // HH:MM format for scheduled meal time
   calories: number;
   macros: {
     protein: number;
