@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Clock, Target, Users, Bell } from "lucide-react";
+import { Plus, Search, Filter, Clock, Target, Users, Bell, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,12 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { dietPlansStorage } from "@/utils/storage";
 import { DietPlan } from "@/types/health";
 import { useNotifications } from "@/hooks/useNotifications";
+import PlanFormDialog from "./PlanFormDialog";
+import ReminderDialog from "./ReminderDialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const DietPlans = () => {
   const [plans, setPlans] = useState<DietPlan[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<DietPlan | undefined>();
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [selectedPlanForReminder, setSelectedPlanForReminder] = useState<DietPlan | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const { scheduleMealReminders, requestPermission, permission } = useNotifications();
+  const { toast } = useToast();
 
   useEffect(() => {
     const savedPlans = dietPlansStorage.getAll();
@@ -120,6 +139,56 @@ const DietPlans = () => {
     return "Balanced";
   };
 
+  const handleSavePlan = (plan: DietPlan) => {
+    if (editingPlan) {
+      dietPlansStorage.update(plan.id, plan);
+      setPlans(plans.map(p => p.id === plan.id ? plan : p));
+    } else {
+      dietPlansStorage.add(plan);
+      setPlans([...plans, plan]);
+    }
+    setEditingPlan(undefined);
+  };
+
+  const handleEditPlan = (plan: DietPlan) => {
+    setEditingPlan(plan);
+    setIsFormOpen(true);
+  };
+
+  const handleDeletePlan = (planId: string) => {
+    dietPlansStorage.remove(planId);
+    setPlans(plans.filter(p => p.id !== planId));
+    setDeletingPlanId(null);
+    toast({
+      title: "Plan Deleted",
+      description: "The diet plan has been removed",
+      duration: 3000
+    });
+  };
+
+  const handleSetCustomReminders = (plan: DietPlan) => {
+    if (permission !== "granted") {
+      requestPermission();
+      return;
+    }
+    setSelectedPlanForReminder(plan);
+    setReminderDialogOpen(true);
+  };
+
+  const handleReminderSet = (plan: DietPlan, customTimes: any) => {
+    // Update meals with custom times
+    const updatedMeals = plan.meals.map(meal => {
+      const mealType = meal.type.toLowerCase();
+      if (customTimes[mealType]) {
+        return { ...meal, time: customTimes[mealType] };
+      }
+      return meal;
+    });
+
+    const updatedPlan = { ...plan, meals: updatedMeals };
+    scheduleMealReminders(updatedPlan);
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -127,7 +196,13 @@ const DietPlans = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Diet Plans</h1>
           <p className="text-muted-foreground">Discover and manage your personalized nutrition plans</p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => {
+            setEditingPlan(undefined);
+            setIsFormOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Create New Plan
         </Button>
@@ -228,20 +303,29 @@ const DietPlans = () => {
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  <Button className="w-full" size="sm">
-                    View Plan Details
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditPlan(plan)}
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setDeletingPlanId(plan.id)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                   <Button 
                     variant="outline" 
                     className="w-full" 
                     size="sm"
-                    onClick={() => {
-                      if (permission === "granted") {
-                        scheduleMealReminders(plan);
-                      } else {
-                        requestPermission();
-                      }
-                    }}
+                    onClick={() => handleSetCustomReminders(plan)}
                   >
                     <Bell className="h-3 w-3 mr-2" />
                     Set Meal Reminders
@@ -299,6 +383,39 @@ const DietPlans = () => {
           </CardContent>
         </Card>
       </div>
+
+      <PlanFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSave={handleSavePlan}
+        editPlan={editingPlan}
+      />
+
+      {selectedPlanForReminder && (
+        <ReminderDialog
+          open={reminderDialogOpen}
+          onOpenChange={setReminderDialogOpen}
+          plan={selectedPlanForReminder}
+          onSetReminders={handleReminderSet}
+        />
+      )}
+
+      <AlertDialog open={!!deletingPlanId} onOpenChange={() => setDeletingPlanId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Diet Plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this diet plan? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deletingPlanId && handleDeletePlan(deletingPlanId)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

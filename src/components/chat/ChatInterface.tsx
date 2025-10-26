@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { chatStorage } from "@/utils/storage";
-import { ChatMessage, ChatbotResponse } from "@/types/health";
+import { chatStorage, dietPlansStorage } from "@/utils/storage";
+import { ChatMessage, ChatbotResponse, DietPlan } from "@/types/health";
 import ChatMessageRenderer from "./ChatMessageRenderer";
 import { chatWithGemini } from "@/services/geminiService";
 import { toast } from "sonner";
@@ -114,8 +114,39 @@ const ChatInterface = () => {
   };
 
   const handleQuickReply = (action: string, data: any) => {
-    setInputValue(action.replace('_', ' '));
-    // Auto-send the quick reply
+    console.log("Quick reply action:", action, data);
+    
+    // Handle different actions
+    switch (action) {
+      case 'save_plan':
+        // Find the plan in the last assistant message and save it
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage?.data?.content?.plan) {
+          const plan = lastMessage.data.content.plan as DietPlan;
+          dietPlansStorage.add(plan);
+          toast.success("Plan Saved", {
+            description: `${plan.name} has been saved to your diet plans`
+          });
+        }
+        return;
+        
+      case 'customize_plan':
+        setInputValue("I'd like to customize this plan");
+        break;
+        
+      case 'create_meal_plan':
+        setInputValue("Create a personalized meal plan for me");
+        break;
+        
+      case 'track_nutrition':
+        setInputValue("Help me track my nutrition");
+        break;
+        
+      default:
+        setInputValue(`Tell me more about ${action}`);
+    }
+    
+    // Auto-send the message
     setTimeout(() => handleSendMessage(), 100);
   };
 
