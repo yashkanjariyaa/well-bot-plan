@@ -1,12 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 const API_KEY = "AIzaSyAGw4LKvYkT7T5z5tZv1aiXp2wGPBJ0EJk";
-const genAI = new GoogleGenerativeAI(API_KEY);
+const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
 export const chatWithGemini = async (message: string, conversationHistory: { role: string; content: string }[]) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
     // Build conversation context
     const context = conversationHistory
       .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
@@ -107,9 +103,30 @@ Detect emergencies and respond with emergency format. Provide meal times (breakf
 
     const fullPrompt = `${systemPrompt}\n\nConversation history:\n${context}\n\nUser: ${message}\n\nAssistant (respond in JSON):`;
 
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const text = response.text();
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: fullPrompt
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates[0]?.content?.parts[0]?.text || '';
 
     // Try to parse JSON from response
     try {
