@@ -42,8 +42,9 @@ export const useNotifications = () => {
         EMAILJS_CONFIG.templateId,
         {
           to_email: userEmail,
-          subject: title,
-          message: body,
+          user_name: "User",
+          reminder_type: title,
+          reminder_message: body,
           scheduled_time: scheduledTime.toLocaleString(),
         }
       );
