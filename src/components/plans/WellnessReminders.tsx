@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Bell, Droplets, Footprints, Plus, Trash2 } from "lucide-react";
+import { Bell, Droplets, Footprints, Plus, Trash2, Mail } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { userEmailStorage } from "@/utils/storage";
 
 const WellnessReminders = () => {
   const { scheduleWaterReminders, scheduleWalkReminders, requestPermission, sendTestNotification, permission } = useNotifications();
@@ -19,6 +20,15 @@ const WellnessReminders = () => {
   
   const [walkTimes, setWalkTimes] = useState<string[]>(["07:00", "17:00"]);
   const [newWalkTime, setNewWalkTime] = useState("12:00");
+  
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    const savedEmail = userEmailStorage.get();
+    if (savedEmail) {
+      setUserEmail(savedEmail);
+    }
+  }, []);
 
   const handleSetWaterReminders = () => {
     if (permission !== "granted") {
@@ -81,12 +91,61 @@ const WellnessReminders = () => {
     });
   };
 
+  const handleSaveEmail = () => {
+    if (!userEmail || !userEmail.includes("@")) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    userEmailStorage.set(userEmail);
+    toast({
+      title: "Email Saved",
+      description: "You'll now receive email notifications for reminders",
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Wellness Reminders</h1>
         <p className="text-muted-foreground">Set up reminders for hydration and daily walks</p>
       </div>
+
+      {/* Email Notification Setup */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" />
+            Email Notifications
+          </CardTitle>
+          <CardDescription>
+            Enter your email to receive reminder notifications via email
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="your.email@example.com"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleSaveEmail}>
+              Save Email
+            </Button>
+          </div>
+          {userEmail && userEmailStorage.get() === userEmail && (
+            <p className="text-sm text-muted-foreground">
+              ✅ Email notifications enabled for: <strong>{userEmail}</strong>
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Notification Permission Status */}
       {permission !== "granted" && (
@@ -96,10 +155,10 @@ const WellnessReminders = () => {
               <Bell className="h-5 w-5 text-amber-600" />
               <div className="flex-1">
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  Notifications Not Enabled
+                  Browser Notifications Not Enabled
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Enable notifications to receive wellness reminders
+                  Enable browser notifications to receive in-app reminders
                 </p>
               </div>
               <Button onClick={requestPermission} size="sm" variant="outline">

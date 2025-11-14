@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   HEALTH_METRICS: 'healthapp_health_metrics',
   FORM_DATA: 'healthapp_form_data',
   PREFERENCES: 'healthapp_preferences',
+  USER_EMAIL: 'healthapp_user_email',
 } as const;
 
 // Generic storage functions
@@ -223,6 +224,21 @@ export const preferencesStorage = {
   update: (updates: any): boolean => {
     const current = preferencesStorage.get();
     return setToStorage(STORAGE_KEYS.PREFERENCES, { ...current, ...updates });
+  },
+};
+
+// User Email Storage
+export const userEmailStorage = {
+  get: (): string | null => {
+    return getFromStorage<string>(STORAGE_KEYS.USER_EMAIL);
+  },
+
+  set: (email: string): boolean => {
+    return setToStorage(STORAGE_KEYS.USER_EMAIL, email);
+  },
+
+  remove: (): boolean => {
+    return removeFromStorage(STORAGE_KEYS.USER_EMAIL);
   },
 };
 
