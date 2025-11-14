@@ -27,11 +27,17 @@ export const useNotifications = () => {
     
     if (!userEmail) {
       console.log("📧 No email configured for notifications");
+      toast.warning("Email not configured", {
+        description: "Add your email in Wellness Reminders to receive email notifications",
+        duration: 4000,
+      });
       return;
     }
 
+    console.log(`📧 Attempting to send email to ${userEmail}...`);
+    
     try {
-      await emailjs.send(
+      const response = await emailjs.send(
         EMAILJS_CONFIG.serviceId,
         EMAILJS_CONFIG.templateId,
         {
@@ -41,9 +47,15 @@ export const useNotifications = () => {
           scheduled_time: scheduledTime.toLocaleString(),
         }
       );
-      console.log(`📧 Email notification sent to ${userEmail}`);
-    } catch (error) {
-      console.error("Failed to send email notification:", error);
+      console.log(`✅ Email notification sent successfully:`, response);
+      return response;
+    } catch (error: any) {
+      console.error("❌ Failed to send email notification:", error);
+      toast.error("Email notification failed", {
+        description: error?.text || "Please check your EmailJS configuration",
+        duration: 5000,
+      });
+      throw error;
     }
   };
 
@@ -83,8 +95,10 @@ export const useNotifications = () => {
         console.warn(`⚠️ Notification permission not granted: ${Notification.permission}`);
       }
       
-      // Email notification
-      sendEmailNotification(title, body, triggerTime);
+      // Email notification (don't await to avoid blocking)
+      sendEmailNotification(title, body, triggerTime).catch(err => {
+        console.error("Email notification error:", err);
+      });
       
       // Toast notification
       toast.success(title, {
@@ -188,7 +202,9 @@ export const useNotifications = () => {
     }
   };
 
-  const sendTestNotification = () => {
+  const sendTestNotification = async () => {
+    const userEmail = userEmailStorage.get();
+    
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("🧪 Test Notification", {
         body: "This is a test notification. If you see this, notifications are working!",
@@ -212,6 +228,29 @@ export const useNotifications = () => {
       });
     } else {
       toast.error("Your browser doesn't support notifications");
+    }
+
+    // Test email notification
+    if (userEmail) {
+      console.log(`📧 Sending test email to ${userEmail}...`);
+      try {
+        await sendEmailNotification(
+          "🧪 Test Email Notification",
+          "This is a test email. If you received this, email notifications are working!",
+          new Date()
+        );
+        toast.success("Test email sent!", {
+          description: `Check your inbox at ${userEmail}`,
+          duration: 4000,
+        });
+      } catch (error) {
+        // Error already handled in sendEmailNotification
+      }
+    } else {
+      toast.info("Email test skipped", {
+        description: "Add your email in Wellness Reminders to test email notifications",
+        duration: 4000,
+      });
     }
   };
 
