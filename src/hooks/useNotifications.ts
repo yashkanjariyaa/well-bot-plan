@@ -1,6 +1,18 @@
 import { useEffect } from "react";
 import { DietPlan } from "@/types/health";
 import { toast } from "sonner";
+import emailjs from "@emailjs/browser";
+import { userEmailStorage } from "@/utils/storage";
+
+// EmailJS Configuration
+const EMAILJS_CONFIG = {
+  serviceId: "service_bitzmas",
+  templateId: "template_pydhguo",
+  publicKey: "xSYRHTDo2gIZZeefz",
+};
+
+// Initialize EmailJS
+emailjs.init(EMAILJS_CONFIG.publicKey);
 
 export const useNotifications = () => {
   useEffect(() => {
@@ -9,6 +21,31 @@ export const useNotifications = () => {
       Notification.requestPermission();
     }
   }, []);
+
+  const sendEmailNotification = async (title: string, body: string, scheduledTime: Date) => {
+    const userEmail = userEmailStorage.get();
+    
+    if (!userEmail) {
+      console.log("📧 No email configured for notifications");
+      return;
+    }
+
+    try {
+      await emailjs.send(
+        EMAILJS_CONFIG.serviceId,
+        EMAILJS_CONFIG.templateId,
+        {
+          to_email: userEmail,
+          subject: title,
+          message: body,
+          scheduled_time: scheduledTime.toLocaleString(),
+        }
+      );
+      console.log(`📧 Email notification sent to ${userEmail}`);
+    } catch (error) {
+      console.error("Failed to send email notification:", error);
+    }
+  };
 
   const scheduleNotification = (title: string, body: string, triggerTime: Date) => {
     const now = new Date();
@@ -33,6 +70,7 @@ export const useNotifications = () => {
     setTimeout(() => {
       console.log(`🔔 Firing notification: ${title}`);
       
+      // Browser notification
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification(title, {
           body,
@@ -45,7 +83,10 @@ export const useNotifications = () => {
         console.warn(`⚠️ Notification permission not granted: ${Notification.permission}`);
       }
       
-      // Also show toast notification
+      // Email notification
+      sendEmailNotification(title, body, triggerTime);
+      
+      // Toast notification
       toast.success(title, {
         description: body,
         duration: 5000,
